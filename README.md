@@ -56,7 +56,7 @@ modules:
     labels: | # build labels: must be a object
       {
         "__meta_tailscale_device_id": .ID,
-        "__meta_tailscale_device_dns_name": .DNSName | trimstr("."),
+        "__meta_tailscale_device_dns_name": .DNSName | rtrimstr("."),
         "__meta_tailscale_device_ipv4": .TailscaleIPs[0],
       }
 ```
