@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -84,7 +85,17 @@ type Module struct {
 	OAuthClientSecretEnv string `yaml:"oauthClientSecretEnv"`
 }
 
+func strDefault(a, b string) string {
+	if a == "" {
+		return b
+	}
+	return a
+}
+
 func (m *Module) buildExpression() (string, error) {
+	filter := strDefault(m.Filter, ".")
+	targets := strDefault(m.Targets, "[]")
+	labels := strDefault(m.Labels, "{}")
 	switch m.Source {
 	case "localapi", "":
 		return fmt.Sprintf(`
@@ -98,7 +109,7 @@ func (m *Module) buildExpression() (string, error) {
 		labels: %s,
 	}
 ]
-`, m.Filter, m.Targets, m.Labels), nil
+		`, filter, targets, labels), nil
 	case "publicapi":
 		return fmt.Sprintf(`
 [
@@ -109,7 +120,7 @@ func (m *Module) buildExpression() (string, error) {
 		labels: %s,
 	}
 ]
-		`, m.Filter, m.Targets, m.Labels), nil
+		`, filter, targets, labels), nil
 	default:
 		return "", fmt.Errorf("invalid source %s", m.Source)
 	}
@@ -151,11 +162,11 @@ func newHandler(cfg *Config) (http.Handler, error) {
 		if err != nil {
 			return nil, err
 		}
-		var path string
+		var p string
 		if strings.HasPrefix(mod.Path, "/") {
-			path = mod.Path
+			p = mod.Path
 		} else {
-			path = "/" + name
+			p = path.Join("/", name)
 		}
 		var source string
 		if mod.Source == "" {
@@ -163,7 +174,7 @@ func newHandler(cfg *Config) (http.Handler, error) {
 		} else {
 			source = mod.Source
 		}
-		slog.Info("register handler for module", "name", name, "path", path, "source", source)
+		slog.Info("register handler for module", "name", name, "path", p, "source", source)
 		var client apiClient
 		switch source {
 		case "localapi", "":
@@ -177,7 +188,7 @@ func newHandler(cfg *Config) (http.Handler, error) {
 				return nil, fmt.Errorf("invalid module config for %s: %w", name, err)
 			}
 		}
-		mux.HandleFunc("GET "+path, handler(code, client))
+		mux.HandleFunc("GET "+p, handler(code, client))
 	}
 	mux.HandleFunc("GET /metrics", func(w http.ResponseWriter, r *http.Request) {
 		metrics.WriteProcessMetrics(w)
