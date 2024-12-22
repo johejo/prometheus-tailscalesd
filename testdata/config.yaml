@@ -1,0 +1,29 @@
+modules:
+  node-exporter:
+    path: /node-exporter
+    source: localapi
+    filter: |
+      select(.OS == "linux")
+    targets: |
+      [(.DNSName | split(".")[0]) + ":9100"]
+    labels: |
+      {
+        "__meta_tailscale_device_id": .ID,
+        "__meta_tailscale_device_dns_name": .DNSName | rtrimstr("."),
+        "__meta_tailscale_device_ipv4": .TailscaleIPs[0],
+      }
+# node-exporter2:
+#   path: /node-exporter2
+#   source: publicapi
+#   oauthClientIDEnv: TAILSCALE_OAUTH_CLIENT_ID
+#   oauthClientSecretEnv: TAILSCALE_OAUTH_CLIENT_SECRET
+#   filter: |
+#     select(.os == "linux")
+#   targets: |
+#     [(.name | split(".")[0]) + ":9100"]
+#   labels: |
+#     {
+#       "__meta_tailscale_device_id": .nodeId,
+#       "__meta_tailscale_device_dns_name": .name,
+#       "__meta_tailscale_device_ipv4": .addresses[0][0],
+#     }
